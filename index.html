@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scène d'attente Mobile & Stream</title>
+    <title>Scène d'attente Connectée - Stream</title>
+    <!-- Chargement de la bibliothèque de synchronisation en direct -->
+    <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;700&family=Space+Grotesk:wght@500;700&display=swap');
 
@@ -28,7 +30,6 @@
             padding: 20px;
         }
 
-        /* Cercles lumineux d'ambiance */
         .bg-glow {
             position: absolute;
             width: 150%;
@@ -40,7 +41,6 @@
             pointer-events: none;
         }
 
-        /* Badge d'état adapté */
         .status-badge {
             z-index: 2;
             display: inline-flex;
@@ -70,7 +70,6 @@
         .status-badge.red-badge .dot { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
         .status-badge.purple-badge .dot { background: #a855f7; box-shadow: 0 0 10px #a855f7; }
 
-        /* Conteneur Principal Responsive */
         .container {
             z-index: 2;
             padding: 40px 20px;
@@ -97,7 +96,6 @@
             -webkit-text-fill-color: transparent;
         }
 
-        /* Compte à rebours fluide */
         .countdown {
             font-family: 'Space Grotesk', sans-serif;
             font-size: clamp(3.5rem, 15vw, 6.5rem);
@@ -116,7 +114,6 @@
             padding: 0 10px;
         }
 
-        /* NOUVEAU BANDEAU DE RÉSEAUX SOCIAUX DÉFILANT (Style Télé / News) */
         .social-ticker {
             position: fixed;
             bottom: 25px;
@@ -131,7 +128,7 @@
             -webkit-backdrop-filter: blur(10px);
             width: 90%;
             max-width: 500px;
-            overflow: hidden; /* Cache ce qui dépasse du rond */
+            overflow: hidden;
             display: flex;
             align-items: center;
         }
@@ -139,8 +136,8 @@
         .ticker-track {
             display: flex;
             white-space: nowrap;
-            padding-left: 100%; /* Démarre hors écran à droite */
-            animation: marquee 25s linear infinite; /* Défilement continu */
+            padding-left: 100%;
+            animation: marquee 28s linear infinite; /* Un poil plus long pour s'adapter au nouveau texte */
         }
 
         .social-item {
@@ -148,19 +145,17 @@
             font-weight: 500;
             color: #cbd5e1;
             letter-spacing: 0.5px;
-            padding-right: 50px; /* Espace entre chaque réseau */
+            padding-right: 60px; /* Plus d'espace entre les liens */
             display: inline-block;
         }
 
         .social-item strong { color: #6366f1; }
 
-        /* Animation du défilement infini */
         @keyframes marquee {
             0% { transform: translate3d(0, 0, 0); }
             100% { transform: translate3d(-100%, 0, 0); }
         }
 
-        /* Bouton de contrôle secret pour mobile */
         .admin-trigger {
             position: fixed;
             top: 15px;
@@ -176,7 +171,6 @@
             z-index: 10;
         }
 
-        /* Panneau d'administration Mobile */
         .admin-panel {
             position: fixed;
             top: 50%;
@@ -228,7 +222,6 @@
             border-radius: 12px;
             color: white;
             font-size: 0.95rem;
-            -webkit-appearance: none;
         }
 
         .btn-group {
@@ -275,20 +268,20 @@
         <div class="status-text" id="sub-title">Installez-vous confortablement, on arrive...</div>
     </div>
 
-    <!-- Bandeau des Réseaux Sociaux mis à jour -->
+    <!-- Bandeau des Réseaux Sociaux Mis à Jour -->
     <div class="social-ticker">
         <div class="ticker-track">
-        <div class="social-item">🔮 Suis-moi sur Twitch : <strong>twitch.tv/vogarialive</strong></div>
-        <div class="social-item">💬 Rejoins le Discord de la commu : <strong>https://discord.gg/Kbmxu6tRtx</strong></div>
-        <div class="social-item">🎬 Youtube de Vogaria : <strong>https://www.youtube.com/@VogariaR.P</strong></div>
-        <div class="social-item">📱 TikTok Officiel de Vogaria : <strong>https://www.tiktok.com/@vogaria_live</strong></div>
-	<div class="social-item">📱 Mon Compte Youtube : <strong>https://www.youtube.com/@vogarialive</strong></div>
+            <div class="social-item">🔮 Suis-moi sur Twitch : <strong>twitch.tv/vogarialive</strong></div>
+            <div class="social-item">💬 Rejoins le Discord de la commu : <strong>https://discord.gg/Kbmxu6tRtx</strong></div>
+            <div class="social-item">🎬 Youtube de Vogaria : <strong>https://www.youtube.com/@VogariaR.P</strong></div>
+            <div class="social-item">📱 TikTok Officiel de Vogaria : <strong>https://www.tiktok.com/@vogaria_live</strong></div>
+            <div class="social-item">📱 Mon Compte Youtube : <strong>https://www.youtube.com/@vogarialive</strong></div>
         </div>
     </div>
 
     <!-- Audio Invisible (Piste d'ambiance Lo-Fi Piano/Guitare de Wikimedia) -->
     <audio id="bg-music" loop>
-        <source src="sigmamusicart-no-copyright-music-537751.mp3" type="audio/mpeg">
+        <source src="sigmamusicart-no-copyright-music-537751" type="audio/mpeg">
     </audio>
 
     <!-- Bouton Réglages Mobile -->
@@ -296,7 +289,7 @@
 
     <!-- Panneau d'administration -->
     <div class="admin-panel" id="adminPanel">
-        <h2>Contrôle de l'Écran</h2>
+        <h2>Contrôle en DIRECT</h2>
         
         <div class="form-group">
             <label for="inputTitle">Titre Principal</label>
@@ -323,12 +316,16 @@
         </div>
 
         <div class="btn-group">
-            <button class="btn btn-save" onclick="saveSettings()">Mettre à jour</button>
+            <button class="btn btn-save" onclick="sendLiveUpdate()">Mettre à jour OBS</button>
             <button class="btn btn-close" onclick="toggleAdmin()">Fermer</button>
         </div>
     </div>
 
     <script>
+        // 💻 METS TA CLÉ API EN DESSOUS (Garde bien les guillemets) :
+        const ably = new Ably.Realtime('h1-bHQ.uIoMtw:ILA9mZ3GDYnRKmpc2acEu_vNI_FAGW5oWePcb5U9Jhw');
+        const channel = ably.channels.get('stream-control');
+
         let countdownTime = 300;
         let timerInterval;
         const timerDisplay = document.getElementById('timer');
@@ -339,26 +336,26 @@
         const badgeContainer = document.getElementById('badge-container');
         const badgeText = document.getElementById('badge-text');
 
-        bgMusic.volume = 0.3; // Volume doux à 30%
+        bgMusic.volume = 0.3;
 
         window.onload = function() {
-            if(localStorage.getItem('streamTitle')) {
-                mainTitle.innerText = localStorage.getItem('streamTitle');
-                document.getElementById('inputTitle').value = localStorage.getItem('streamTitle');
-            }
-            if(localStorage.getItem('streamSubtitle')) {
-                subTitle.innerText = localStorage.getItem('streamSubtitle');
-                document.getElementById('inputSubtitle').value = localStorage.getItem('streamSubtitle');
-            }
-            if(localStorage.getItem('streamBadge')) {
-                applyBadgeStyle(localStorage.getItem('streamBadge'));
-                document.getElementById('selectBadge').value = localStorage.getItem('streamBadge');
-            }
-            
-            const savedTime = localStorage.getItem('streamDuration');
-            countdownTime = savedTime ? parseInt(savedTime) : 300;
-            
             startTimer();
+            
+            channel.subscribe('update', function(message) {
+                const data = message.data;
+                
+                mainTitle.innerText = data.title;
+                subTitle.innerText = data.subtitle;
+                countdownTime = data.duration;
+                applyBadgeStyle(data.badge);
+
+                document.getElementById('inputTitle').value = data.title;
+                document.getElementById('inputSubtitle').value = data.subtitle;
+                document.getElementById('selectBadge').value = data.badge;
+
+                startTimer();
+                bgMusic.play().catch(e => console.log("Audio en attente."));
+            });
         };
 
         function startTimer() {
@@ -399,27 +396,16 @@
             }
         }
 
-        function saveSettings() {
-            const newTitle = document.getElementById('inputTitle').value;
-            const newSubtitle = document.getElementById('inputSubtitle').value;
-            const extraMinutes = parseInt(document.getElementById('inputMinutes').value);
-            const badgeStatus = document.getElementById('selectBadge').value;
+        function sendLiveUpdate() {
+            const sendData = {
+                title: document.getElementById('inputTitle').value,
+                subtitle: document.getElementById('inputSubtitle').value,
+                duration: parseInt(document.getElementById('inputMinutes').value) * 60,
+                badge: document.getElementById('selectBadge').value
+            };
 
-            mainTitle.innerText = newTitle;
-            subTitle.innerText = newSubtitle;
-            countdownTime = extraMinutes * 60;
-            
-            applyBadgeStyle(badgeStatus);
-
-            localStorage.setItem('streamTitle', newTitle);
-            localStorage.setItem('streamSubtitle', newSubtitle);
-            localStorage.setItem('streamDuration', countdownTime);
-            localStorage.setItem('streamBadge', badgeStatus);
-
-            startTimer();
+            channel.publish('update', sendData);
             toggleAdmin();
-
-            bgMusic.play().catch(e => console.log("L'audio nécessite une action utilisateur."));
         }
     </script>
 </body>
