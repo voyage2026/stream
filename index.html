@@ -282,10 +282,8 @@
         </div>
     </div>
 
-    <!-- Nouvelle Musique Configurée -->
-    <audio id="bg-music" loop>
-        <source src="sigmamusicart-no-copyright-music-537751.mp3" type="audio/mpeg">
-    </audio>
+    <!-- Lecteur Audio (La source est gérée dynamiquement par le script de la playlist) -->
+    <audio id="bg-music"></audio>
 
     <!-- Bouton Réglages Mobile -->
     <button class="admin-trigger" onclick="toggleAdmin()">⚙️ Menu</button>
@@ -338,6 +336,15 @@
         const ably = new Ably.Realtime('h1-bHQ.uIoMtw:ILA9mZ3GDYnRKmpc2acEu_vNI_FAGW5oWePcb5U9Jhw');
         const channel = ably.channels.get('stream-control');
 
+        // Gestion de la Playlist automatique
+        const playlist = [
+            "sigmamusicart-no-copyright-music-537751.mp3",
+            "ikoliks_aj-acoustic-spring-mothers-day-music-320427.mp3"
+            "kontraa-water-afro-pop-music-445661.mp3"
+            "alexguz-funk-amp-breakbeat-541097.mp3"
+        ];
+        let currentTrackIndex = 0;
+
         let countdownTime = 300;
         let timerInterval;
         let isTimerRunning = true;
@@ -352,14 +359,27 @@
 
         bgMusic.volume = 0.3;
 
+        // Charger la première piste de la playlist
+        function loadTrack(index) {
+            bgMusic.src = playlist[index];
+            bgMusic.load();
+        }
+
         window.onload = function() {
+            loadTrack(currentTrackIndex);
             startTimer();
             
-            // Écoute des mises à jour en direct
+            // Événement : Quand la musique en cours se termine, on passe à la suivante
+            bgMusic.onended = function() {
+                currentTrackIndex = (currentTrackIndex + 1) % playlist.length; // Passe à la suivante (et revient à 0 à la fin)
+                loadTrack(currentTrackIndex);
+                bgMusic.play().catch(e => console.log("Lecture automatique de la piste suivante bloquée."));
+            };
+            
+            // Écoute des mises à jour en direct via Ably
             channel.subscribe('update', function(message) {
                 const data = message.data;
                 
-                // Si c'est un changement de statut du timer (Play/Pause)
                 if (data.action === 'timerControl') {
                     if (data.state === 'pause') {
                         isTimerRunning = false;
@@ -371,7 +391,6 @@
                     return;
                 }
 
-                // Sinon, c'est une mise à jour des textes/durée
                 mainTitle.innerText = data.title;
                 subTitle.innerText = data.subtitle;
                 countdownTime = data.duration;
@@ -383,7 +402,7 @@
 
                 isTimerRunning = true;
                 startTimer();
-                bgMusic.play().catch(e => console.log("Audio en attente."));
+                bgMusic.play().catch(e => console.log("Audio en attente d'une interaction utilisateur."));
             });
         };
 
@@ -427,12 +446,10 @@
             }
         }
 
-        // Envoyer l'ordre de Pause ou de Play au timer
         function controlTimer(state) {
             channel.publish('update', { action: 'timerControl', state: state });
         }
 
-        // Envoyer la mise à jour globale des inputs
         function sendLiveUpdate() {
             const sendData = {
                 action: 'formUpdate',
